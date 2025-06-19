@@ -6,6 +6,8 @@ import uuid
 from datetime import datetime
 import time
 import sys
+import tkinter as tk
+from tkinter import messagebox
 
 SEGREDO = "StartSoftware2025"
 ARQUIVO_ORIGINAL = "software.exe"
@@ -63,15 +65,47 @@ def descriptografar(nome_in, nome_out, chave):
     criptografar(nome_in, nome_out, chave)  # mesma função
 
 def erro(msg):
-    print(f"\n❌ {msg}\n{SUPORTE}")
-    input("\nPressione Enter para sair.")
+    messagebox.showerror("Erro", f"{msg}\n{SUPORTE}")
     sys.exit()
 
 def alerta(msg):
-    print(f"\n⚠️ {msg}")
-    input("Pressione Enter para continuar...")
+    messagebox.showwarning("Atenção", msg)
+
+def pedir_input(prompt: str) -> str:
+    """Exibe uma janela grande para entrada de texto."""
+    var = tk.StringVar()
+
+    def confirmar():
+        root.quit()
+
+    for w in root.winfo_children():
+        w.destroy()
+
+    tk.Label(root, text=prompt, bg="#f0f0f0").pack(pady=20)
+    entry = tk.Entry(root, textvariable=var, width=30)
+    entry.pack(pady=10)
+    tk.Button(
+        root,
+        text="Confirmar",
+        command=confirmar,
+        bg="#4CAF50",
+        fg="white",
+        padx=20,
+        pady=10,
+    ).pack(pady=20)
+    entry.focus()
+    root.deiconify()
+    root.mainloop()
+    root.withdraw()
+    return var.get().strip()
 
 if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Start Launcher")
+    root.geometry("700x400")
+    root.configure(bg="#f0f0f0")
+    root.option_add("*Font", "Helvetica 16")
+    root.withdraw()
     id_atual = pegar_id_maquina()
     id_salvo = carregar_id()
 
@@ -79,14 +113,24 @@ if __name__ == "__main__":
     if not id_salvo:
         if not os.path.exists(ARQUIVO_ORIGINAL):
             erro("Erro: Arquivo raiz não encontrado.")
-        print("🔐 Primeira execução detectada.")
-        data = input("Data de expiração (DD/MM/AAAA): ").strip()
+        messagebox.showinfo("Primeira execução", "🔐 Primeira execução detectada.")
+        while True:
+            data = pedir_input("Data de expiração (DD/MM/AAAA):")
+            if not data:
+                erro("Data de expiração não fornecida.")
+            try:
+                datetime.strptime(data, "%d/%m/%Y")
+                break
+            except Exception:
+                messagebox.showerror("Erro", "Data inválida. Tente novamente.")
         chave_gerada = embaralhar_data(data)
         criptografar(ARQUIVO_ORIGINAL, ARQUIVO_CRIPTO, chave_gerada)
         os.remove(ARQUIVO_ORIGINAL)
         salvar_id(id_atual)
-        print("✅ Software protegido com sucesso.")
-        print("Agora inicie novamente com sua chave.")
+        messagebox.showinfo(
+            "Sucesso",
+            "✅ Software protegido com sucesso.\nAgora inicie novamente com sua chave.",
+        )
         sys.exit()
 
     # Impede cópia para outro PC
@@ -96,16 +140,19 @@ if __name__ == "__main__":
     if not os.path.exists(ARQUIVO_CRIPTO):
         erro("Arquivo raiz não encontrado.")
 
-    chave_usuario = input("Digite sua chave de ativação: ").strip().upper()
+    chave_usuario = pedir_input("Digite sua chave de ativação:")
+    if not chave_usuario:
+        erro("Nenhuma chave informada.")
+    chave_usuario = chave_usuario.strip().upper()
 
     if chave_usuario == CHAVE_VITALICIA:
-        print("🔓 Licença vitalícia ativada.")
+        messagebox.showinfo("Licença", "🔓 Licença vitalícia ativada.")
         data_decodificada = "31/12/2099"
     else:
         try:
             data_decodificada = desembra(chave_usuario)
             dias = dias_restantes(data_decodificada)
-        except:
+        except Exception:
             erro("Chave inválida.")
 
         if dias < -2:
@@ -132,3 +179,4 @@ if __name__ == "__main__":
 
     if os.path.exists(ARQUIVO_TEMP):
         os.remove(ARQUIVO_TEMP)
+    root.destroy()
