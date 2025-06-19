@@ -1,5 +1,7 @@
 # gerador_chave.py
 import datetime
+import tkinter as tk
+from tkinter import messagebox, simpledialog
 
 def embaralhar_data(data: str) -> str:
     # Entrada: "DD/MM/AAAA"
@@ -13,10 +15,16 @@ def embaralhar_data(data: str) -> str:
     return chave[:8]
 
 if __name__ == "__main__":
-    data = input("Data de expiração (DD/MM/AAAA): ").strip()
-    try:
-        datetime.datetime.strptime(data, "%d/%m/%Y")
-        chave = embaralhar_data(data)
-        print(f"\n🔑 Chave gerada: {chave}")
-    except:
-        print("❌ Data inválida.")
+    root = tk.Tk()
+    root.withdraw()
+    data = simpledialog.askstring(
+        "Validade", "Data de expiração (DD/MM/AAAA):", parent=root
+    )
+    if data:
+        try:
+            datetime.datetime.strptime(data, "%d/%m/%Y")
+            chave = embaralhar_data(data)
+            messagebox.showinfo("Chave gerada", f"🔑 Chave gerada: {chave}")
+        except Exception:
+            messagebox.showerror("Erro", "❌ Data inválida.")
+    root.destroy()
