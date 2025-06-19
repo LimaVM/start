@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 import sys
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 
 SEGREDO = "StartSoftware2025"
 ARQUIVO_ORIGINAL = "software.exe"
@@ -71,8 +71,40 @@ def erro(msg):
 def alerta(msg):
     messagebox.showwarning("Atenção", msg)
 
+def pedir_input(prompt: str) -> str:
+    """Exibe uma janela grande para entrada de texto."""
+    var = tk.StringVar()
+
+    def confirmar():
+        root.quit()
+
+    for w in root.winfo_children():
+        w.destroy()
+
+    tk.Label(root, text=prompt, bg="#f0f0f0").pack(pady=20)
+    entry = tk.Entry(root, textvariable=var, width=30)
+    entry.pack(pady=10)
+    tk.Button(
+        root,
+        text="Confirmar",
+        command=confirmar,
+        bg="#4CAF50",
+        fg="white",
+        padx=20,
+        pady=10,
+    ).pack(pady=20)
+    entry.focus()
+    root.deiconify()
+    root.mainloop()
+    root.withdraw()
+    return var.get().strip()
+
 if __name__ == "__main__":
     root = tk.Tk()
+    root.title("Start Launcher")
+    root.geometry("700x400")
+    root.configure(bg="#f0f0f0")
+    root.option_add("*Font", "Helvetica 16")
     root.withdraw()
     id_atual = pegar_id_maquina()
     id_salvo = carregar_id()
@@ -82,11 +114,15 @@ if __name__ == "__main__":
         if not os.path.exists(ARQUIVO_ORIGINAL):
             erro("Erro: Arquivo raiz não encontrado.")
         messagebox.showinfo("Primeira execução", "🔐 Primeira execução detectada.")
-        data = simpledialog.askstring(
-            "Data de expiração", "Data de expiração (DD/MM/AAAA):", parent=root
-        )
-        if not data:
-            erro("Data de expiração não fornecida.")
+        while True:
+            data = pedir_input("Data de expiração (DD/MM/AAAA):")
+            if not data:
+                erro("Data de expiração não fornecida.")
+            try:
+                datetime.strptime(data, "%d/%m/%Y")
+                break
+            except Exception:
+                messagebox.showerror("Erro", "Data inválida. Tente novamente.")
         chave_gerada = embaralhar_data(data)
         criptografar(ARQUIVO_ORIGINAL, ARQUIVO_CRIPTO, chave_gerada)
         os.remove(ARQUIVO_ORIGINAL)
@@ -104,9 +140,7 @@ if __name__ == "__main__":
     if not os.path.exists(ARQUIVO_CRIPTO):
         erro("Arquivo raiz não encontrado.")
 
-    chave_usuario = simpledialog.askstring(
-        "Chave", "Digite sua chave de ativação:", parent=root
-    )
+    chave_usuario = pedir_input("Digite sua chave de ativação:")
     if not chave_usuario:
         erro("Nenhuma chave informada.")
     chave_usuario = chave_usuario.strip().upper()
