@@ -34,7 +34,9 @@ Este sistema protege o acesso ao `software.exe` com criptografia, verificação 
 ---
 
 ### 🔐 Validação nas execuções seguintes
-1. Solicita a **chave de ativação de 8 caracteres**
+1. Se houver uma chave válida em `licenca.dat`, ela é reutilizada
+   automaticamente. Caso contrário, solicita a **chave de ativação** de 8
+   caracteres
 2. A chave decodifica a **data de expiração**
 3. Verifica:
    - Se a máquina é a original (ID bate com `id.dat`)
