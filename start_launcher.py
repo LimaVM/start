@@ -1,0 +1,134 @@
+# start_launcher.py
+import hashlib
+import os
+import subprocess
+import uuid
+from datetime import datetime
+import time
+import sys
+
+SEGREDO = "StartSoftware2025"
+ARQUIVO_ORIGINAL = "software.exe"
+ARQUIVO_CRIPTO = "startshield.dat"
+ARQUIVO_TEMP = "_start_temp.exe"
+ARQUIVO_ID = "id.dat"
+CHAVE_VITALICIA = "VOLTESEMPRE-START"
+SUPORTE = "Entre em contato com o administrador: (61) 99997-4302"
+
+def pegar_id_maquina():
+    return str(uuid.getnode())
+
+def salvar_id(id_maquina):
+    with open(ARQUIVO_ID, "w") as f:
+        f.write(id_maquina)
+
+def carregar_id():
+    if not os.path.exists(ARQUIVO_ID):
+        return None
+    with open(ARQUIVO_ID, "r") as f:
+        return f.read().strip()
+
+def embaralhar_data(data: str) -> str:
+    dia, mes, ano = data.split("/")
+    s = ano[2:] + mes + dia
+    mapa = "Z8Y7X6W5V4U3T2S1R0QPONMLKJIHGFEDCBA9876543210"
+    chave = ""
+    for i, c in enumerate(s):
+        v = int(c)
+        chave += mapa[(v + i * 3) % len(mapa)]
+    return chave[:8]
+
+def desembra(data_code: str) -> str:
+    mapa = "Z8Y7X6W5V4U3T2S1R0QPONMLKJIHGFEDCBA9876543210"
+    indices = [mapa.index(c) for c in data_code]
+    vals = [(v - i * 3) % 10 for i, v in enumerate(indices)]
+    dia = str(vals[5]) + str(vals[6])
+    mes = str(vals[3]) + str(vals[4])
+    ano = "20" + str(vals[0]) + str(vals[1])
+    return f"{dia}/{mes}/{ano}"
+
+def dias_restantes(data_expiracao: str) -> int:
+    hoje = datetime.now()
+    exp = datetime.strptime(data_expiracao, "%d/%m/%Y")
+    return (exp - hoje).days
+
+def criptografar(nome_in, nome_out, chave):
+    with open(nome_in, "rb") as f:
+        data = f.read()
+    data = bytearray([b ^ ord(chave[i % len(chave)]) for i, b in enumerate(data)])
+    with open(nome_out, "wb") as f:
+        f.write(data)
+
+def descriptografar(nome_in, nome_out, chave):
+    criptografar(nome_in, nome_out, chave)  # mesma função
+
+def erro(msg):
+    print(f"\n❌ {msg}\n{SUPORTE}")
+    input("\nPressione Enter para sair.")
+    sys.exit()
+
+def alerta(msg):
+    print(f"\n⚠️ {msg}")
+    input("Pressione Enter para continuar...")
+
+if __name__ == "__main__":
+    id_atual = pegar_id_maquina()
+    id_salvo = carregar_id()
+
+    # Primeira inicialização
+    if not id_salvo:
+        if not os.path.exists(ARQUIVO_ORIGINAL):
+            erro("Erro: Arquivo raiz não encontrado.")
+        print("🔐 Primeira execução detectada.")
+        data = input("Data de expiração (DD/MM/AAAA): ").strip()
+        chave_gerada = embaralhar_data(data)
+        criptografar(ARQUIVO_ORIGINAL, ARQUIVO_CRIPTO, chave_gerada)
+        os.remove(ARQUIVO_ORIGINAL)
+        salvar_id(id_atual)
+        print("✅ Software protegido com sucesso.")
+        print("Agora inicie novamente com sua chave.")
+        sys.exit()
+
+    # Impede cópia para outro PC
+    if id_atual != id_salvo:
+        erro("Este programa foi copiado de outra máquina.")
+
+    if not os.path.exists(ARQUIVO_CRIPTO):
+        erro("Arquivo raiz não encontrado.")
+
+    chave_usuario = input("Digite sua chave de ativação: ").strip().upper()
+
+    if chave_usuario == CHAVE_VITALICIA:
+        print("🔓 Licença vitalícia ativada.")
+        data_decodificada = "31/12/2099"
+    else:
+        try:
+            data_decodificada = desembra(chave_usuario)
+            dias = dias_restantes(data_decodificada)
+        except:
+            erro("Chave inválida.")
+
+        if dias < -2:
+            erro("Licença expirada.")
+        elif dias == -2 or dias == -1:
+            alerta("Licença vencida! Período de tolerância ativo.")
+        elif dias == 0:
+            alerta("Hoje é o último dia de uso da licença.")
+        elif dias <= 2:
+            alerta(f"Atenção: Faltam {dias} dias para a licença vencer.")
+
+    # Descriptografar e executar
+    descriptografar(ARQUIVO_CRIPTO, ARQUIVO_TEMP, chave_usuario)
+    proc = subprocess.Popen(ARQUIVO_TEMP)
+
+    # Monitorar vencimento enquanto o software roda
+    while proc.poll() is None:
+        if chave_usuario != CHAVE_VITALICIA:
+            if dias_restantes(data_decodificada) < -2:
+                proc.kill()
+                os.remove(ARQUIVO_TEMP)
+                erro("Licença expirada. O software foi encerrado.")
+        time.sleep(60)
+
+    if os.path.exists(ARQUIVO_TEMP):
+        os.remove(ARQUIVO_TEMP)
