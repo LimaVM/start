@@ -66,7 +66,7 @@ Este sistema protege o acesso ao `software.exe` com criptografia, verificação 
 python gerador_chave.py
 ```
 
-2. Digite a data de expiração no formato `DD/MM/AAAA`
+2. Selecione a data de expiração usando o calendário exibido
 
 3. Você receberá uma chave como:
 ```
@@ -74,6 +74,9 @@ python gerador_chave.py
 ```
 
 💡 Essa chave deve ser enviada ao usuário junto com a data de expiração.
+
+> **Requisito**: a interface utiliza o pacote `tkcalendar` para o seletor de
+> data. Instale-o com `pip install tkcalendar` caso necessário.
 
 ---
 

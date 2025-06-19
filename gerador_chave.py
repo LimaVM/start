@@ -3,6 +3,7 @@ import datetime
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
+from tkcalendar import DateEntry
 
 def embaralhar_data(data: str) -> str:
     # Entrada: "DD/MM/AAAA"
@@ -32,12 +33,20 @@ if __name__ == "__main__":
 
     tk.Label(
         frame,
-        text="Data de expiração (DD/MM/AAAA):",
+        text="Data de expiração:",
         bg="#ffffff",
     ).pack(pady=20)
 
     data_var = tk.StringVar()
-    entry = tk.Entry(frame, textvariable=data_var, width=25)
+    entry = DateEntry(
+        frame,
+        textvariable=data_var,
+        date_pattern="dd/mm/yyyy",
+        background="#4CAF50",
+        foreground="white",
+        borderwidth=2,
+        width=18,
+    )
     entry.pack(pady=10)
     entry.focus()
 

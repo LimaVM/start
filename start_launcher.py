@@ -9,6 +9,7 @@ import sys
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
+from tkcalendar import DateEntry
 
 SEGREDO = "StartSoftware2025"
 ARQUIVO_ORIGINAL = "software.exe"
@@ -72,8 +73,8 @@ def erro(msg):
 def alerta(msg):
     messagebox.showwarning("Atenção", msg)
 
-def pedir_input(prompt: str) -> str:
-    """Exibe uma janela grande para entrada de texto."""
+def pedir_input(prompt: str, selecionar_data: bool = False) -> str:
+    """Exibe uma janela para entrada de texto ou seleção de data."""
     var = tk.StringVar()
 
     def confirmar():
@@ -94,11 +95,22 @@ def pedir_input(prompt: str) -> str:
     frame.place(relx=0.5, rely=0.5, anchor="center")
 
     tk.Label(frame, text=prompt, bg="#ffffff").pack(pady=20)
-    entry = tk.Entry(frame, textvariable=var, width=30)
+    if selecionar_data:
+        entry = DateEntry(
+            frame,
+            textvariable=var,
+            date_pattern="dd/mm/yyyy",
+            background="#4CAF50",
+            foreground="white",
+            borderwidth=2,
+            width=18,
+        )
+    else:
+        entry = tk.Entry(frame, textvariable=var, width=30)
     entry.pack(pady=10)
     tk.Button(
         frame,
-        text="Confirmar",
+        text="OK",
         command=confirmar,
         bg="#4CAF50",
         fg="white",
@@ -136,7 +148,7 @@ if __name__ == "__main__":
             erro("Erro: Arquivo raiz não encontrado.")
         messagebox.showinfo("Primeira execução", "🔐 Primeira execução detectada.")
         while True:
-            data = pedir_input("Data de expiração (DD/MM/AAAA):")
+            data = pedir_input("Data de expiração:", selecionar_data=True)
             if not data:
                 erro("Data de expiração não fornecida.")
             try:
