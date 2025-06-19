@@ -92,6 +92,30 @@ VOLTESEMPRE-START
 
 ---
 
+## ▶️ Tutorial de execução
+
+1. Instale as dependências do projeto:
+
+```bash
+pip install -r requirements.txt
+```
+
+2. Coloque `icon.ico` e `icon.jpeg` na mesma pasta destes scripts.
+
+3. Para gerar uma chave de ativação execute:
+
+```bash
+python gerador_chave.py
+```
+
+4. Com a chave em mãos, inicie o launcher:
+
+```bash
+python start_launcher.py
+```
+
+---
+
 ## 📦 Compilação recomendada
 
 ```bash
