@@ -6,6 +6,12 @@ import uuid
 from datetime import datetime
 import time
 import sys
+import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
+from tkcalendar import DateEntry
+
+ARQUIVO_LICENCA = "licenca.dat"
 
 SEGREDO = "StartSoftware2025"
 ARQUIVO_ORIGINAL = "software.exe"
@@ -26,6 +32,16 @@ def carregar_id():
     if not os.path.exists(ARQUIVO_ID):
         return None
     with open(ARQUIVO_ID, "r") as f:
+        return f.read().strip()
+
+def salvar_licenca(chave: str):
+    with open(ARQUIVO_LICENCA, "w") as f:
+        f.write(chave.strip())
+
+def carregar_licenca():
+    if not os.path.exists(ARQUIVO_LICENCA):
+        return None
+    with open(ARQUIVO_LICENCA, "r") as f:
         return f.read().strip()
 
 def embaralhar_data(data: str) -> str:
@@ -52,6 +68,25 @@ def dias_restantes(data_expiracao: str) -> int:
     exp = datetime.strptime(data_expiracao, "%d/%m/%Y")
     return (exp - hoje).days
 
+def validar_chave(chave: str) -> str:
+    chave = chave.strip().upper()
+    if chave == CHAVE_VITALICIA:
+        return "31/12/2099"
+    try:
+        data = desembra(chave)
+    except Exception:
+        raise ValueError("Chave inválida.")
+    dias = dias_restantes(data)
+    if dias < -2:
+        raise ValueError("Licença expirada.")
+    if dias == -2 or dias == -1:
+        alerta("Licença vencida! Período de tolerância ativo.")
+    elif dias == 0:
+        alerta("Hoje é o último dia de uso da licença.")
+    elif dias <= 2:
+        alerta(f"Atenção: Faltam {dias} dias para a licença vencer.")
+    return data
+
 def criptografar(nome_in, nome_out, chave):
     with open(nome_in, "rb") as f:
         data = f.read()
@@ -63,15 +98,78 @@ def descriptografar(nome_in, nome_out, chave):
     criptografar(nome_in, nome_out, chave)  # mesma função
 
 def erro(msg):
-    print(f"\n❌ {msg}\n{SUPORTE}")
-    input("\nPressione Enter para sair.")
+    messagebox.showerror("Erro", f"{msg}\n{SUPORTE}")
     sys.exit()
 
 def alerta(msg):
-    print(f"\n⚠️ {msg}")
-    input("Pressione Enter para continuar...")
+    messagebox.showwarning("Atenção", msg)
+
+def pedir_input(prompt: str, selecionar_data: bool = False) -> str:
+    """Exibe uma janela para entrada de texto ou seleção de data."""
+    var = tk.StringVar()
+
+    def confirmar():
+        root.quit()
+
+    for w in root.winfo_children():
+        if getattr(w, "is_bg", False):
+            continue
+        w.destroy()
+
+    bg_label = tk.Label(root, image=root.bg_image)
+    bg_label.place(relwidth=1, relheight=1)
+    bg_label.lower()
+    bg_label.is_bg = True
+    root.bg_label = bg_label
+
+    frame = tk.Frame(root, bg="#ffffff", bd=0)
+    frame.place(relx=0.5, rely=0.5, anchor="center")
+
+    tk.Label(frame, text=prompt, bg="#ffffff").pack(pady=20)
+    if selecionar_data:
+        entry = DateEntry(
+            frame,
+            textvariable=var,
+            date_pattern="dd/mm/yyyy",
+            background="#4CAF50",
+            foreground="white",
+            borderwidth=2,
+            width=18,
+        )
+    else:
+        entry = tk.Entry(frame, textvariable=var, width=30)
+    entry.pack(pady=10)
+    tk.Button(
+        frame,
+        text="OK",
+        command=confirmar,
+        bg="#4CAF50",
+        fg="white",
+        padx=20,
+        pady=10,
+    ).pack(pady=20)
+    entry.focus()
+    root.deiconify()
+    root.mainloop()
+    root.withdraw()
+    return var.get().strip()
 
 if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Start Launcher")
+    root.geometry("800x500")
+    root.option_add("*Font", "Helvetica 18")
+    root.iconbitmap("icon.ico")
+    root.configure(bg="#f0f0f0")
+
+    bg_image = ImageTk.PhotoImage(Image.open("icon.jpeg"))
+    bg_label = tk.Label(root, image=bg_image)
+    bg_label.place(relwidth=1, relheight=1)
+    bg_label.lower()
+    bg_label.is_bg = True
+
+    root.withdraw()
+    root.bg_image = bg_image
     id_atual = pegar_id_maquina()
     id_salvo = carregar_id()
 
@@ -79,14 +177,23 @@ if __name__ == "__main__":
     if not id_salvo:
         if not os.path.exists(ARQUIVO_ORIGINAL):
             erro("Erro: Arquivo raiz não encontrado.")
-        print("🔐 Primeira execução detectada.")
-        data = input("Data de expiração (DD/MM/AAAA): ").strip()
+        while True:
+            data = pedir_input("Data de expiração:", selecionar_data=True)
+            if not data:
+                erro("Data de expiração não fornecida.")
+            try:
+                datetime.strptime(data, "%d/%m/%Y")
+                break
+            except Exception:
+                messagebox.showerror("Erro", "Data inválida. Tente novamente.")
         chave_gerada = embaralhar_data(data)
         criptografar(ARQUIVO_ORIGINAL, ARQUIVO_CRIPTO, chave_gerada)
         os.remove(ARQUIVO_ORIGINAL)
         salvar_id(id_atual)
-        print("✅ Software protegido com sucesso.")
-        print("Agora inicie novamente com sua chave.")
+        messagebox.showinfo(
+            "Sucesso",
+            "✅ Software protegido com sucesso.\nAgora inicie novamente com sua chave.",
+        )
         sys.exit()
 
     # Impede cópia para outro PC
@@ -96,26 +203,27 @@ if __name__ == "__main__":
     if not os.path.exists(ARQUIVO_CRIPTO):
         erro("Arquivo raiz não encontrado.")
 
-    chave_usuario = input("Digite sua chave de ativação: ").strip().upper()
+    chave_usuario = carregar_licenca()
+    data_decodificada = None
 
-    if chave_usuario == CHAVE_VITALICIA:
-        print("🔓 Licença vitalícia ativada.")
-        data_decodificada = "31/12/2099"
-    else:
+    if chave_usuario:
         try:
-            data_decodificada = desembra(chave_usuario)
-            dias = dias_restantes(data_decodificada)
-        except:
-            erro("Chave inválida.")
+            data_decodificada = validar_chave(chave_usuario)
+        except ValueError:
+            chave_usuario = None
 
-        if dias < -2:
-            erro("Licença expirada.")
-        elif dias == -2 or dias == -1:
-            alerta("Licença vencida! Período de tolerância ativo.")
-        elif dias == 0:
-            alerta("Hoje é o último dia de uso da licença.")
-        elif dias <= 2:
-            alerta(f"Atenção: Faltam {dias} dias para a licença vencer.")
+    if not chave_usuario:
+        while True:
+            chave_usuario = pedir_input("Digite sua chave de ativação:")
+            if not chave_usuario:
+                erro("Nenhuma chave informada.")
+            try:
+                data_decodificada = validar_chave(chave_usuario)
+                salvar_licenca(chave_usuario)
+                break
+            except ValueError as e:
+                messagebox.showerror("Erro", str(e))
+                chave_usuario = None
 
     # Descriptografar e executar
     descriptografar(ARQUIVO_CRIPTO, ARQUIVO_TEMP, chave_usuario)
@@ -132,3 +240,4 @@ if __name__ == "__main__":
 
     if os.path.exists(ARQUIVO_TEMP):
         os.remove(ARQUIVO_TEMP)
+    root.destroy()

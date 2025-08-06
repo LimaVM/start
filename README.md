@@ -34,7 +34,9 @@ Este sistema protege o acesso ao `software.exe` com criptografia, verificação 
 ---
 
 ### 🔐 Validação nas execuções seguintes
-1. Solicita a **chave de ativação de 8 caracteres**
+1. Se houver uma chave válida em `licenca.dat`, ela é reutilizada
+   automaticamente. Caso contrário, solicita a **chave de ativação** de 8
+   caracteres
 2. A chave decodifica a **data de expiração**
 3. Verifica:
    - Se a máquina é a original (ID bate com `id.dat`)
@@ -66,7 +68,7 @@ Este sistema protege o acesso ao `software.exe` com criptografia, verificação 
 python gerador_chave.py
 ```
 
-2. Digite a data de expiração no formato `DD/MM/AAAA`
+2. Selecione a data de expiração usando o calendário exibido
 
 3. Você receberá uma chave como:
 ```
@@ -74,6 +76,9 @@ python gerador_chave.py
 ```
 
 💡 Essa chave deve ser enviada ao usuário junto com a data de expiração.
+
+> **Requisito**: a interface utiliza o pacote `tkcalendar` para o seletor de
+> data. Instale-o com `pip install tkcalendar` caso necessário.
 
 ---
 
@@ -83,6 +88,30 @@ Chave especial para desbloqueio permanente:
 
 ```
 VOLTESEMPRE-START
+```
+
+---
+
+## ▶️ Tutorial de execução
+
+1. Instale as dependências do projeto:
+
+```bash
+pip install -r requirements.txt
+```
+
+2. Coloque `icon.ico` e `icon.jpeg` na mesma pasta destes scripts.
+
+3. Para gerar uma chave de ativação execute:
+
+```bash
+python gerador_chave.py
+```
+
+4. Com a chave em mãos, inicie o launcher:
+
+```bash
+python start_launcher.py
 ```
 
 ---
